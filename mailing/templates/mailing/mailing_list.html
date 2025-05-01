@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Рассылки</h2>
+    <a href="{% url 'mailing:mailing_create' %}">Создать рассылку</a>
+    <ul>
+        {% for mailing in mailings %}
+            <li>
+                {{ mailing.start_time }} - {{ mailing.end_time }} - {{ mailing.status }}
+                <a href="{% url 'mailing:mailing_update' mailing.pk %}">Изменить</a>
+                <a href="{% url 'mailing:mailing_delete' mailing.pk %}">Удалить</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
