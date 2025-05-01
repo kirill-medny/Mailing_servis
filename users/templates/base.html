@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Мой сайт{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'mailing:home' %}">Главная</a></li>
+                    <li><a href="{% url 'users:profile' %}">Профиль</a></li>
+                    <li><a href="{% url 'users:logout' %}">Выход</a></li>
+                {% else %}
+                    <li><a href="{% url 'users:login' %}">Вход</a></li>
+                    <li><a href="{% url 'users:register' %}">Регистрация</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        &copy; 2024
+    </footer>
+</body>
+</html>
