@@ -2,16 +2,18 @@
 
 {% block content %}
     <h2>Рассылки</h2>
-    <a href="{% url 'mailing:mailing_create' %}">Создать рассылку</a>
-    <ul>
+    <a href="{% url 'mailing:mailing_create' %}" class="btn btn-primary">Создать рассылку</a>
+    <ul class="list-group">
         {% for mailing in mailings %}
-            <li>
+            <li class="list-group-item">
                 {{ mailing.start_time }} - {{ mailing.end_time }} - {{ mailing.status }}
-                <a href="{% url 'mailing:mailing_update' mailing.pk %}">Изменить</a>
-                <a href="{% url 'mailing:mailing_delete' mailing.pk %}">Удалить</a>
+                {% if mailing.owner == request.user or request.user.has_perm('mailing.can_view_all_mailings') %}
+                    <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-sm btn-secondary">Изменить</a>
+                    <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% endif %}
                 <form method="post" action="{% url 'mailing:start_mailing' mailing.pk %}">
                     {% csrf_token %}
-                    <button type="submit">Запустить рассылку</button>
+                    <button type="submit" class="btn btn-sm btn-success">Запустить рассылку</button>
                 </form>
             </li>
         {% endfor %}

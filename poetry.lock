@@ -762,6 +762,17 @@ jwt = ["pyjwt (>=2.9.0,<2.10.0)"]
 ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
 
 [[package]]
+name = "signals"
+version = "0.0.2"
+description = "Object notifier and pubsub"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "signals-0.0.2.tar.gz", hash = "sha256:b9d43a42e23c5ae8ae04ac01a5234e6502efadef263eee93191fb31f58fdb339"},
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -841,4 +852,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "9c88419035c09bb7bd21f201df167922f532ab3ba8bf8cd41fda58e6a225fa61"
+content-hash = "6c75c89b9de628479417e047f9df62fe8ed204c6fab3ae30ce40805826f3f7c5"
