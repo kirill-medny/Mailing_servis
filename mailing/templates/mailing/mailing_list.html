@@ -9,6 +9,10 @@
                 {{ mailing.start_time }} - {{ mailing.end_time }} - {{ mailing.status }}
                 <a href="{% url 'mailing:mailing_update' mailing.pk %}">Изменить</a>
                 <a href="{% url 'mailing:mailing_delete' mailing.pk %}">Удалить</a>
+                <form method="post" action="{% url 'mailing:start_mailing' mailing.pk %}">
+                    {% csrf_token %}
+                    <button type="submit">Запустить рассылку</button>
+                </form>
             </li>
         {% endfor %}
     </ul>

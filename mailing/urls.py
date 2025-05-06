@@ -13,6 +13,8 @@ from mailing.views import (
     MailingCreateView,
     MailingUpdateView,
     MailingDeleteView,
+    start_mailing,
+    mailing_reports,
 )
 
 app_name = 'mailing'
@@ -34,4 +36,7 @@ urlpatterns = [
     path('mailings/create/', MailingCreateView.as_view(), name='mailing_create'),
     path('mailings/update/<int:pk>/', MailingUpdateView.as_view(), name='mailing_update'),
     path('mailings/delete/<int:pk>/', MailingDeleteView.as_view(), name='mailing_delete'),
+    path('mailings/start/<int:pk>/', start_mailing, name='start_mailing'),
+
+    path('reports/', mailing_reports, name='mailing_reports'),
 ]

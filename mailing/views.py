@@ -5,6 +5,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from mailing.models import Message, Client, Mailing
 from django.contrib import messages
+from django.db.models import Count
+from django.contrib.auth.decorators import permission_required
+
 
 
 @login_required
@@ -187,3 +190,41 @@ class MailingDeleteView(LoginRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'Рассылка успешно удалена.')
         return super().delete(request, *args, **kwargs)
+    
+def start_mailing(request, pk, send_mailing_task=None):
+    mailing = get_object_or_404(Mailing, pk=pk, owner=request.user)
+
+    # Запускаем задачу Celery асинхронно
+    send_mailing_task.delay(mailing.pk)
+
+    mailing.status = 'running'
+    mailing.save()
+
+    messages.success(request, f'Рассылка "{mailing.pk}" была запущена.')
+    return redirect('mailing:mailing_list')
+
+@login_required
+def mailing_reports(request):
+    """
+    Отображает отчеты о попытках рассылки для текущего пользователя.
+    """
+
+    # Fetch mailings owned by the current user
+    mailings = Mailing.objects.filter(owner=request.user)
+
+    # Fetch attempt statistics for those mailings
+    mailing_attempts = MailingAttempt.objects.filter(mailing__in=mailings).values('mailing').annotate(
+        total_attempts=Count('mailing'),
+        successful_attempts=Count('mailing', filter=models.Q(status='success')),
+        failed_attempts=Count('mailing', filter=models.Q(status='failure'))
+    )
+
+    # Подготовьте словарь для учета количества попыток для каждой рассылки
+    mailing_stats = {attempt['mailing']: attempt for attempt in mailing_attempts}
+
+    # Передача данных в шаблон
+    context = {
+        'mailings': mailings,
+        'mailing_stats': mailing_stats,
+    }
+    return render(request, 'mailing/mailing_reports.html', context)
