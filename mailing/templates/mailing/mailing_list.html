@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Рассылки</h2>
+    <a href="{% url 'mailing:mailing_create' %}" class="btn btn-primary">Создать рассылку</a>
+    <ul class="list-group">
+        {% for mailing in mailings %}
+            <li class="list-group-item">
+                {{ mailing.start_time }} - {{ mailing.end_time }} - {{ mailing.status }}
+                {% if mailing.owner == request.user %}
+                    <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-sm btn-secondary">Изменить</a>
+                    <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% endif %}
+                <form method="post" action="{% url 'mailing:start_mailing' mailing.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">Запустить рассылку</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
