@@ -7,3 +7,4 @@ class MailingConfig(AppConfig):
 
     def ready(self):
         import mailing.signals
+

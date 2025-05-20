@@ -1,13 +1,17 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import models
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views import View
 from django.views.decorators.cache import cache_page
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django_apscheduler.models import DjangoJob
 
-from mailing.models import Client, Mailing, Message
+from mailing.models import Client, Mailing, MailingAttempt, Message
 
 
 @cache_page(60 * 15)  # Кешируем на 15 минут
@@ -16,7 +20,6 @@ def home(request):
     total_mailings = Mailing.objects.count()
     active_mailings = Mailing.objects.filter(status="running").count()
     unique_clients = Client.objects.values("email").distinct().count()
-
     context = {
         "total_mailings": total_mailings,
         "active_mailings": active_mailings,
@@ -162,14 +165,23 @@ class MailingCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
-        messages.success(self.request, "Рассылка успешно создана.")
-        return super().form_valid(form)
+        mailing = form.save()
 
-    def form_invalid(self, form):
-        messages.error(
-            self.request, "Ошибка создания рассылки. Проверьте введенные данные."
+        # Планируем задачу schedule_mailing_wrapper
+        start_time = mailing.start_time
+        end_time = mailing.end_time
+
+        DjangoJob.objects.create(
+            name=f"mailing_task_{mailing.pk}",
+            task="mailing.tasks.schedule_mailing_wrapper",  # Corrected task path
+            args=[str(mailing.pk)],  # Передаем ID рассылки как строку
+            next_run_time=start_time,
+            end_datetime=end_time,
+            replace_existing=True,
         )
-        return super().form_invalid(form)
+
+        messages.success(self.request, "Рассылка успешно создана и запланирована.")
+        return super().form_valid(form)
 
 
 class MailingUpdateView(LoginRequiredMixin, UpdateView):
@@ -205,17 +217,24 @@ class MailingDeleteView(LoginRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-def start_mailing(request, pk, send_mailing_task=None):
-    mailing = get_object_or_404(Mailing, pk=pk, owner=request.user)
+class StartMailingView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        mailing = get_object_or_404(Mailing, pk=pk, owner=request.user)
 
-    # Запускаем задачу Celery асинхронно
-    send_mailing_task.delay(mailing.pk)
+        # Запускаем задачу Celery асинхронно
+        # send_mailing_task.delay(mailing.pk) больше не нужно, так как рассылка планируется
+        # schedule_mailing_wrapper.delay(mailing.pk)
+        if mailing.start_time <= timezone.now():
+            messages.error(
+                request, "Нельзя запустить рассылку, дата начала которой уже прошла"
+            )
+            return redirect("mailing:mailing_list")
 
-    mailing.status = "running"
-    mailing.save()
+        mailing.status = "running"
+        mailing.save()
 
-    messages.success(request, f'Рассылка "{mailing.pk}" была запущена.')
-    return redirect("mailing:mailing_list")
+        messages.success(request, f'Рассылка "{mailing.pk}" была запущена.')
+        return redirect("mailing:mailing_list")
 
 
 @login_required

@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import pytz
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,7 +12,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
@@ -90,6 +91,10 @@ USE_I18N = True
 
 USE_TZ = True
 
+if os.name == "nt":
+    os.environ["TZ"] = "Europe/Moscow"
+    pytz.timezone("Europe/Moscow")
+
 STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -127,11 +132,12 @@ APSCHEDULER_JOBSTORES = {
 
 SCHEDULER_CONFIG = {
     "apscheduler.jobstores.default.class": "django_apscheduler.jobstores:DjangoJobStore",
-    "apscheduler.executors.default.class": "apscheduler.executors:ThreadPoolExecutor",
+    "apscheduler.executors.default.class": "apscheduler.executors.pool:ThreadPoolExecutor",
     "apscheduler.executors.default.max_workers": "20",
     "apscheduler.job_defaults.coalesce": "false",
-    "apscheduler.timezone": TIME_ZONE,
+    "apscheduler.timezone": os.environ.get("TZ", "Europe/Moscow"),
 }
+
 
 LOGGING = {
     "version": 1,
@@ -160,3 +166,6 @@ LOGGING = {
         },
     },
 }
+
+# LOGIN_REDIRECT_URL = 'mailing:home'
+# LOGOUT_REDIRECT_URL = 'users:login'

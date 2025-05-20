@@ -1,11 +1,10 @@
 import logging
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 
-from mailing.models import Client, Mailing, MailingAttempt
+from mailing.models import Mailing, MailingAttempt
 
 logger = logging.getLogger(__name__)
 
@@ -58,40 +57,7 @@ def send_mailing_task(self, mailing_id):
     logger.info(f"Mailing {mailing.pk} completed.")
 
 
-def mailing_scheduler():
-
-    scheduler = BackgroundScheduler(settings.SCHEDULER_CONFIG)
-    scheduler.start()
-
-    mailings = Mailing.objects.filter(status="created")
-    for mailing in mailings:
-
-        # Проверка времени отправки
-        if mailing.status == "completed":
-            logger.info(f"Mailing {mailing.pk} is already completed.")
-            return
-
-        if mailing.status == "running":
-            logger.info(f"Mailing {mailing.pk} is running.")
-            return
-
-        scheduler.add_job(
-            send_mailing_task,
-            "interval",
-            minutes=1,  # Запускать каждую минуту
-            start_date=mailing.start_time,
-            end_date=mailing.end_time,
-            args=[mailing.pk],
-            id=f"mailing_{mailing.pk}",  # Уникальный ID для каждой рассылки
-            replace_existing=True,  # Перезаписывать задачу, если она уже существует
-        )
-
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-
-@receiver(post_save, sender=Mailing)
-def mailing_post_save(sender, instance, created, **kwargs):
-    if created:
-        mailing_scheduler()
+@shared_task(bind=False)  #  bind=False - КЛЮЧЕВОЙ МОМЕНТ
+def schedule_mailing_wrapper(mailing_id):
+    """Запускает задачу отправки рассылки асинхронно через Celery."""
+    send_mailing_task.delay(mailing_id)  # или apply_async, если нужно больше контроля
